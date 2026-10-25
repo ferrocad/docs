@@ -37,6 +37,20 @@ The pages themselves are checked in `ferrocad/ferrocad`'s `headless` CI job
 push. This repository does not duplicate those checks: it only renders what is
 committed.
 
+## URLs
+
+The assembled book drops the `user/` level, so pages live directly under the site:
+
+- `https://ferrocad.github.io/docs/` — introduction
+- `…/tutorials/first-model.html`
+- `…/how-to/…`, `…/explanation/…`
+- `…/python-api/…`, `…/mods/…`
+
+The workflow passes `--site-url https://ferrocad.github.io/docs/`. mdBook only
+uses it as the `<base>` of the generated `404.html`; normal pages keep relative
+links. Without it a mistyped URL loads the 404 page with assets resolved from the
+domain root (`/css/…`), which 404 in a project site.
+
 ## One-time setup
 
 Settings → Pages → Build and deployment → Source: **GitHub Actions**.

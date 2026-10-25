@@ -59,7 +59,7 @@ jobs:
         # Also validates the tree: every page is in SUMMARY.md and every
         # relative link resolves.
         working-directory: ferrocad
-        run: python3 tools/build_book.py --build
+        run: python3 tools/build_book.py --build --site-url https://ferrocad.github.io/docs/
 
       - uses: actions/configure-pages@v5
         with:
