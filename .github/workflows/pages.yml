@@ -1,0 +1,81 @@
+name: Pages
+
+# Build the FerroCAD user book from a shallow checkout of ferrocad/ferrocad and
+# deploy it to https://ferrocad.github.io/docs/ .
+#
+# This repository owns no content: the pages, the generators and the freshness
+# checks all live in ferrocad/ferrocad. Only `docs/` and `tools/` are checked
+# out, so the build cannot depend on the Rust workspace.
+on:
+  push:
+    branches: [main]
+  schedule:
+    # Pick up changes to ferrocad/ferrocad@main without a push here.
+    - cron: "17 4 * * *"
+  workflow_dispatch:
+  repository_dispatch:
+    types: [ferrocad-main]
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# One deployment at a time; never cancel a running one mid-upload.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the publishing workflow
+        uses: actions/checkout@v4
+
+      - name: Check out ferrocad (shallow; docs + build tools only)
+        uses: actions/checkout@v4
+        with:
+          repository: ferrocad/ferrocad
+          ref: main
+          path: ferrocad
+          fetch-depth: 1
+          sparse-checkout: |
+            docs
+            tools
+          sparse-checkout-cone-mode: true
+
+      # The docs tools are stdlib-only, but pin the interpreter to the one the
+      # source repository checks its generated pages against.
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - uses: peaceiris/actions-mdbook@v2
+        with:
+          mdbook-version: latest
+
+      - name: Assemble and build the book
+        # Also validates the tree: every page is in SUMMARY.md and every
+        # relative link resolves.
+        working-directory: ferrocad
+        run: python3 tools/build_book.py --build
+
+      - uses: actions/configure-pages@v5
+        with:
+          # Enable Pages with the workflow token when it is not on yet.
+          enablement: true
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: ferrocad/target/user-book/book
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
